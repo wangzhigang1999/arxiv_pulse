@@ -1,15 +1,12 @@
 """Main FastAPI application."""
 
-import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from loguru import logger
 
 from arxiv_pulse.database import init_db
 from arxiv_pulse.scheduler import setup_scheduler
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager

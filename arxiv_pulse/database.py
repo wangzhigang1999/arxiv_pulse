@@ -1,7 +1,6 @@
 """Database configuration and session management."""
 
-import logging
-
+from loguru import logger
 from pydantic_settings import BaseSettings
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
@@ -12,7 +11,12 @@ class Settings(BaseSettings):
     """Application settings."""
 
     database_url: str = "mysql+pymysql://root:password@localhost:3306/arxiv_pulse"
-    crawl_interval_minutes: int = 5
+    crawl_interval_minutes: int = 60
+    arxiv_categories: str = (
+        "cs.AI,cs.CV,cs.LG,cs.CL,cs.NE,cs.SE,cs.DC,cs.DS,"
+        "cs.DB,cs.IR,cs.ET,cs.GL,cs.IT,cs.MA"
+    )
+    arxiv_page_size: int = 100
 
     class Config:
         env_file = ".env"
@@ -38,7 +42,7 @@ def init_db():
     """Initialize database tables."""
     try:
         Base.metadata.create_all(bind=engine)
+        logger.info("Database tables initialized successfully")
     except Exception as e:
-        logger = logging.getLogger(__name__)
         logger.error(f"Failed to initialize database: {e}")
         raise
