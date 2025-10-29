@@ -118,9 +118,20 @@ def process_keyword_matches():
                 if chinese_summary:
                     # Update paper with Chinese summary
                     paper.chinese_summary = chinese_summary
-                    summary_count += 1
 
-                    # Send DingTalk notification
+                    # Commit immediately after setting the summary
+                    try:
+                        db.commit()
+                        summary_count += 1
+                        logger.info(f"Successfully saved Chinese summary for paper: {paper.title[:50]}...")
+                    except Exception as e:
+                        logger.error(f"Failed to save Chinese summary for paper {paper.id}: {e}")
+                        db.rollback()
+                        # Continue processing other papers even if this one failed
+                        processed_count += 1
+                        continue
+
+                    # Send DingTalk notification (after successful commit)
                     paper_data = {
                         "title": paper.title,
                         "chinese_summary": chinese_summary,
@@ -134,17 +145,11 @@ def process_keyword_matches():
 
                 processed_count += 1
 
-        # Commit all changes
-        try:
-            db.commit()
-            logger.success(
-                f"Processed {processed_count} papers, generated {summary_count} "
-                f"summaries, sent {notification_count} notifications"
-            )
-        except Exception as e:
-            logger.error(f"Failed to commit changes: {e}")
-            db.rollback()
-            raise
+        # Final summary log
+        logger.success(
+            f"Processed {processed_count} papers, generated {summary_count} "
+            f"summaries, sent {notification_count} notifications"
+        )
 
         db.close()
 
