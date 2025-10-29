@@ -61,18 +61,18 @@ arXiv Pulse 是一个智能的 arXiv 论文监控与摘要服务，旨在帮助�
 - MySQL 5.7+ 或 MySQL 8.0+
 - LLM API Key（如阿里云 DashScope、OpenAI 等）
 
-### 使用 pip 安装
+### 使用 uv 安装
 
 ```bash
 # 克隆仓库
 git clone <repository-url>
 cd arxiv_pulse
 
-# 安装依赖
-pip install -r requirements.txt
+# 安装依赖（包括开发依赖）
+uv sync
 
-# 或者使用 uv（推荐）
-uv pip install -r requirements.txt
+# 或仅安装运行时依赖
+uv sync --no-dev
 ```
 
 ## ⚙️ 配置
@@ -118,11 +118,11 @@ DINGTALK_WEBHOOK_URL=https://oapi.dingtalk.com/robot/send?access_token=your_toke
 ### 启动服务
 
 ```bash
-# 直接运行
-python -m arxiv_pulse.main
+# 使用 uv 运行
+uv run arxiv-pulse
 
-# 或使用命令行工具
-arxiv-pulse
+# 或直接运行模块
+uv run python -m arxiv_pulse.main
 
 # 服务默认运行在 http://0.0.0.0:8000
 ```
@@ -183,7 +183,7 @@ ruff check .
 ### 安装开发依赖
 
 ```bash
-pip install -r requirements-dev.txt
+uv sync
 ```
 
 ## 📝 许可证
