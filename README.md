@@ -75,20 +75,6 @@ pip install -r requirements.txt
 uv pip install -r requirements.txt
 ```
 
-### 使用 Docker 部署
-
-```bash
-# 构建镜像
-docker build -t arxiv-pulse .
-
-# 运行容器
-docker run -d \
-  --name arxiv-pulse \
-  -p 8000:8000 \
-  --env-file .env \
-  arxiv-pulse
-```
-
 ## ⚙️ 配置
 
 创建 `.env` 文件，配置以下环境变量：
