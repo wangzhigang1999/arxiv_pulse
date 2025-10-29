@@ -20,4 +20,5 @@ class ArxivPaper(Base):
     updated = Column(DateTime)
     categories = Column(String(200))
     link = Column(String(500))
+    chinese_summary = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)

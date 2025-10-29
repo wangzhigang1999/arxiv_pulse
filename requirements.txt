@@ -13,4 +13,5 @@ pydantic[email]>=2.5.0
 pydantic-settings>=2.1.0
 loguru>=0.7.0
 ruff>=0.14.2
+requests>=2.31.0
 
