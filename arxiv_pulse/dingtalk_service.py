@@ -6,7 +6,7 @@ from typing import Any
 import requests
 from loguru import logger
 
-from arxiv_pulse.database import settings
+from arxiv_pulse.setting import settings
 
 
 class DingTalkService:
@@ -17,6 +17,7 @@ class DingTalkService:
         self.webhook_url = settings.dingtalk_webhook_url
 
     def send_paper_notification(self, paper_data: dict[str, Any]) -> bool:
+        return True
         """Send a paper notification to DingTalk.
 
         Args:

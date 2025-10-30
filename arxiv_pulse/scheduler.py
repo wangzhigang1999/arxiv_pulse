@@ -5,11 +5,13 @@ import datetime
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from loguru import logger
+from sqlalchemy import or_
 
-from arxiv_pulse.database import SessionLocal, settings
+from arxiv_pulse.database import SessionLocal
 from arxiv_pulse.dingtalk_service import dingtalk_service
 from arxiv_pulse.fetcher import fetch_arxiv_papers_by_category
 from arxiv_pulse.models import ArxivPaper
+from arxiv_pulse.setting import settings
 from arxiv_pulse.summary_generator import summary_generator
 
 
@@ -19,14 +21,40 @@ def crawl_arxiv():
         logger.info(f"Crawling arXiv at {datetime.datetime.now()}")
         logger.info(f"Categories: {settings.arxiv_categories}")
 
+        db = SessionLocal()
+
+        # Find the latest paper's published date in database
+        latest_paper = db.query(ArxivPaper).order_by(ArxivPaper.published.desc()).first()
+
+        if latest_paper and latest_paper.published:
+            # Use the latest paper's published date as the starting point
+            # Subtract 1 hour to ensure we don't miss papers submitted at the same time
+            published_date = latest_paper.published
+            # Ensure timezone-aware datetime (assume UTC if naive)
+            if published_date.tzinfo is None:
+                published_date = published_date.replace(tzinfo=datetime.UTC)
+            submitted_after = published_date - datetime.timedelta(hours=1)
+            logger.info(
+                f"Found latest paper in database from {latest_paper.published}, fetching papers after {submitted_after}"
+            )
+        else:
+            # If database is empty, fetch papers from the last 7 days
+            submitted_after = datetime.datetime.now(datetime.UTC) - datetime.timedelta(days=7)
+            logger.info(
+                f"Database is empty or no papers found, fetching papers from last 7 days (after {submitted_after})"
+            )
+
+        db.close()
+
         categories_list = [cat.strip() for cat in settings.arxiv_categories.split(",")]
         all_papers = []
 
         for category in categories_list:
             papers = fetch_arxiv_papers_by_category(
                 category=category,
-                max_results=50,
+                max_results=500,  # Increased from 50 to 500 as safety net
                 page_size=settings.arxiv_page_size,
+                submitted_after=submitted_after,
             )
             all_papers.extend(papers)
 
@@ -93,12 +121,23 @@ def process_keyword_matches():
         # Calculate one month ago
         one_month_ago = datetime.datetime.now() - datetime.timedelta(days=30)
 
-        # Find papers that match keywords in both title and summary,
-        # but don't have Chinese summaries yet. Only process papers from the last month
-        query = db.query(ArxivPaper).filter(ArxivPaper.chinese_summary.is_(None), ArxivPaper.published >= one_month_ago)
+        # Find papers without Chinese summaries from the last month
+        query = db.query(ArxivPaper).filter(
+            ArxivPaper.chinese_summary.is_(None),
+            ArxivPaper.published >= one_month_ago,
+        )
+
+        # Pre-filter by keywords at the database level (title OR summary contains any keyword)
+        keyword_conditions = []
+        for kw in keywords:
+            like = f"%{kw}%"
+            keyword_conditions.append(ArxivPaper.title.ilike(like))
+            keyword_conditions.append(ArxivPaper.summary.ilike(like))
+        if keyword_conditions:
+            query = query.filter(or_(*keyword_conditions))
 
         papers = query.all()
-        logger.info(f"Found {len(papers)} papers without Chinese summaries")
+        logger.info(f"Found {len(papers)} keyword-matched papers without Chinese summaries")
 
         processed_count = 0
         summary_count = 0
@@ -176,11 +215,8 @@ def setup_scheduler():
     )
 
     scheduler.start()
+
+    # Run once at startup
     process_keyword_matches()
-
-    logger.info("Starting initial crawl...")
     crawl_arxiv()
-
-    logger.info("Starting initial keyword processing...")
-
     return scheduler
