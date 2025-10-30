@@ -17,7 +17,6 @@ class DingTalkService:
         self.webhook_url = settings.dingtalk_webhook_url
 
     def send_paper_notification(self, paper_data: dict[str, Any]) -> bool:
-        return True
         """Send a paper notification to DingTalk.
 
         Args:

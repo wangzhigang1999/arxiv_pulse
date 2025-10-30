@@ -215,8 +215,4 @@ def setup_scheduler():
     )
 
     scheduler.start()
-
-    # Run once at startup
-    process_keyword_matches()
-    crawl_arxiv()
     return scheduler
